@@ -102,127 +102,167 @@ Uchováva hodnotenia filmov.
 # ERD Diagram
 Surové dáta sú organizované v rámci relačného modelu, ktorý je znázornený pomocou entitno-relačného diagramu (ERD).
 
-![rErS](https://github.com/user-attachments/assets/265e24ab-443c-420a-9de1-300a303b43df)
+<p align="center">
+    <img src="https://github.com/user-attachments/assets/6b7794a5-a7f2-40ca-aa9c-875b5b53b81b" alt="IMDb-ERD_IMG">
+    <br>
+    <em>Obrázok 1: Entitno-relačný diagram IMDb Movies Dataset</em>
+</p>
 
 
 
 # Návrh dimenzionálneho modelu pre IMDb Movies Dataset
 
 ## Úvod
-Pre projekt som navrhol **multi-dimenzionálny model typu hviezda**, ktorý bude slúžiť na efektívnu analýzu dát z IMDb movies datasetu. Tento model pozostáva z **jednej faktovej tabuľky** a niekoľkých **dimenzionálnych tabuliek**, ktoré poskytujú kontext pre metriky vo faktovej tabuľke. Každá dimenzia je navrhnutá tak, aby podporovala rôzne témy analýzy, ako napríklad vplyv žánrov na finančný úspech, konzistentnosť režisérov alebo geografické rozloženie filmov.
+Pre projekt som navrhol **multi-dimenzionálny model typu hviezda**, ktorý slúži na analýzu filmovej databázy IMDb. Model sa skladá z centrálnej faktovej tabuľky a ôsmich dimenzionálnych tabuliek. Každá dimenzia je navrhnutá pre špecifický aspekt analýzy - od časových trendov až po geografické vzory v produkcii filmov.
 
-![m](https://github.com/user-attachments/assets/00ba64f4-2970-49a1-bf66-26fa48704ec0)
+<p align="center">
+    <img src="https://github.com/user-attachments/assets/4d4bbab2-3c1d-4fc0-957f-7a0a3ce16e31" alt="IMDb_star_schema_IMG mwb">
+    <br>
+    <em>Obrázok 2: Schéma dimenzionálneho modelu IMDb Movies Dataset</em>
+</p>
 
----
+## Popis dimenzionálneho modelu
 
-## Faktová tabuľka: **Fact_Movie**
-Faktová tabuľka je jadrom modelu a obsahuje všetky kľúčové metriky pre analýzu filmov. Používam ju na sledovanie rôznych aspektov filmového priemyslu, ako sú hodnotenia, popularita a finančný úspech.
+### Faktová tabuľka (Fact_Movie)
+Centrálna tabuľka obsahujúca merateľné metriky o filmoch:
+- Finančné metriky (tržby)
+- Metriky hodnotenia (priemerné hodnotenie, počet hlasov)
+- Agregované metriky (počet žánrov)
 
-### **Hlavné metriky**:
-| **Metrika**               | **Typ**       | **Popis**                                                                 |
-|---------------------------|---------------|--------------------------------------------------------------------------|
-| `avg_rating`              | DECIMAL(3,1)  | Priemerné hodnotenie filmu (slúži na analýzu kvality filmov).            |
-| `total_votes`             | INT           | Celkový počet hlasov (slúži na analýzu popularity filmov).               |
-| `median_rating`           | INT           | Medián hodnotenia (slúži na analýzu konzistencie hodnotení).             |
-| `worlwide_gross_income`   | VARCHAR(30)   | Celosvetové tržby filmu (slúži na analýzu finančného úspechu).           |
-| `duration`                | INT           | Dĺžka filmu (slúži na analýzu vplyvu dĺžky na úspech filmu).             |
+### Dimenzionálne tabuľky a ich charakteristika
 
-### **Kľúče**:
-| **Kľúč**                     | **Typ**       | **Popis**                                                                 |
-|------------------------------|---------------|--------------------------------------------------------------------------|
-| `movie_id`                   | VARCHAR(10)   | Identifikátor filmu (odkazuje na `Dim_Movie`).                          |
-| `director_id`                | VARCHAR(10)   | Identifikátor režiséra (odkazuje na `Dim_Director`).                    |
-| `actor_id`                   | VARCHAR(10)   | Identifikátor herca (odkazuje na `Dim_Actor`).                          |
-| `genre_id`                   | INT           | Identifikátor žánru (odkazuje na `Dim_Genre`).                          |
-| `country_id`                 | INT           | Identifikátor krajiny (odkazuje na `Dim_Country`).                      |
-| `production_company_id`       | INT           | Identifikátor produkčnej spoločnosti (odkazuje na `Dim_Production_Company`). |
+#### 1. Dim_Date (SCD Type 1)
+- **Obsah**: Kalendárne atribúty pre časovú analýzu
+- **Vzťah k faktom**: Umožňuje sledovanie trendov v čase a sezónne analýzy
+- **Dôvod typu**: Časové údaje sa nemenia, nie je potrebná história zmien
 
----
+#### 2. Dim_Movie (SCD Type 2)
+- **Obsah**: Základné informácie o filmoch
+- **Vzťah k faktom**: Hlavná dimenzia poskytujúca kontext k metrikám
+- **Dôvod typu**: Potrebné sledovať zmeny v údajoch o filme (napr. názov, dĺžka)
 
-## Dimenzionálne tabuľky
+#### 3. Dim_Director (SCD Type 2)
+- **Obsah**: Informácie o režiséroch a ich kariére
+- **Vzťah k faktom**: Umožňuje analýzu vplyvu režiséra na úspech filmu
+- **Dôvod typu**: Sledovanie zmien v kariérnych metrikách režisérov
 
-### **1. Dim_Movie**  
-| **Stĺpec**              | **Typ**       | **Popis**                                                                 |
-|-------------------------|---------------|--------------------------------------------------------------------------|
-| `movie_id`             | VARCHAR(10)   | Primárny kľúč, ktorý identifikuje film.                                 |
-| `title`                | VARCHAR(200)  | Názov filmu.                                                            |
-| `year`                 | INT           | Rok vydania filmu.                                                      |
-| `date_published`       | DATE          | Dátum publikácie filmu.                                                |
-| `duration`             | INT           | Dĺžka filmu v minútach.                                                |
-| `country`              | VARCHAR(100)  | Krajina, kde bol film vyrobený.                                        |
-| `languages`            | VARCHAR(200)  | Jazyky, v ktorých je film dostupný.                                    |
-| `production_company`   | VARCHAR(200)  | Produkčná spoločnosť filmu.                                            |
+#### 4. Dim_Actor (SCD Type 2)
+- **Obsah**: Biografické údaje hercov
+- **Vzťah k faktom**: Analýza vplyvu obsadenia na úspešnosť
+- **Dôvod typu**: Potreba zachytiť zmeny v kariére hercov
 
-- **Typ dimenzie**: **SCD Type 1**.
+#### 5. Dim_Genre (SCD Type 1)
+- **Obsah**: Kategorizácia filmových žánrov
+- **Vzťah k faktom**: Umožňuje žánrovú analýzu úspešnosti
+- **Dôvod typu**: Žánre sú stabilné kategórie
 
-### **2. Dim_Genre**  
-| **Stĺpec**              | **Typ**       | **Popis**                                                                 |
-|-------------------------|---------------|--------------------------------------------------------------------------|
-| `genre_id`             | INT           | Primárny kľúč, ktorý identifikuje žáner.                                |
-| `genre_name`           | VARCHAR(50)   | Názov žánru (napr. akčný, dráma, komédia).                              |
+#### 6. Dim_Production_Company (SCD Type 1)
+- **Obsah**: Údaje o produkčných spoločnostiach
+- **Vzťah k faktom**: Analýza úspešnosti štúdií
+- **Dôvod typu**: Základné údaje o spoločnostiach sa často nemenia
 
-- **Typ dimenzie**: **SCD Type 1**.
+## Detailná štruktúra tabuliek
 
-### **3. Dim_Director**  
-| **Stĺpec**              | **Typ**       | **Popis**                                                                 |
-|-------------------------|---------------|--------------------------------------------------------------------------|
-| `director_id`          | VARCHAR(10)   | Primárny kľúč, ktorý identifikuje režiséra.                             |
-| `director_name`        | VARCHAR(100)  | Meno režiséra.                                                          |
-| `date_of_birth`        | DATE          | Dátum narodenia režiséra.                                              |
-| `height`               | INT           | Výška režiséra.                                                        |
+### Faktová tabuľka: **Fact_Movie**
 
-- **Typ dimenzie**: **SCD Type 2**.
+#### Hlavné metriky:
+| **Metrika** | **Typ** | **Popis** |
+|-------------|---------|-----------|
+| `worldwide_gross_income` | DECIMAL(15,2) | Celkové svetové tržby filmu - kľúčový indikátor úspechu |
+| `avg_rating` | DECIMAL(3,1) | Priemerné hodnotenie filmu (0-10) - ukazovateľ kvality |
+| `total_votes` | INT | Počet všetkých hodnotení - miera popularity |
+| `median_rating` | INT | Medián hodnotení (0-10) - stabilnejší ukazovateľ kvality |
+| `genre_count` | INT | Počet priradených žánrov - žánrová diverzita |
 
-### **4. Dim_Actor**  
-| **Stĺpec**              | **Typ**       | **Popis**                                                                 |
-|-------------------------|---------------|--------------------------------------------------------------------------|
-| `actor_id`             | VARCHAR(10)   | Primárny kľúč, ktorý identifikuje herca.                                |
-| `actor_name`           | VARCHAR(100)  | Meno herca.                                                             |
-| `date_of_birth`        | DATE          | Dátum narodenia herca.                                                 |
-| `height`               | INT           | Výška herca.                                                           |
+#### Dimenzionálne kľúče:
+| **Kľúč** | **Typ** | **Popis** |
+|-----------|---------|-----------|
+| `movie_id` | VARCHAR(10) | Hlavný identifikátor filmu |
+| `date_key` | INT | Referencia na časovú dimenziu |
+| `primary_genre_id` | INT | Odkaz na primárny žáner filmu |
 
-- **Typ dimenzie**: **SCD Type 2**.
+### Dimenzionálne tabuľky
 
-### **5. Dim_Country**  
-| **Stĺpec**              | **Typ**       | **Popis**                                                                 |
-|-------------------------|---------------|--------------------------------------------------------------------------|
-| `country_id`           | INT           | Primárny kľúč, ktorý identifikuje krajinu.                              |
-| `country_name`         | VARCHAR(100)  | Názov krajiny.                                                          |
+#### 1. Dim_Date
+| **Stĺpec** | **Typ** | **Popis** |
+|------------|---------|-----------|
+| `date_key` | INT | Surrogate kľúč pre časovú dimenziu |
+| `full_date` | DATE | Kompletný dátum |
+| `year` | INT | Rok (1900-2100) pre historické analýzy |
+| `quarter` | INT | Kvartál (1-4) pre sezónne trendy |
+| `month` | INT | Mesiac (1-12) pre mesačné analýzy |
+| `is_weekend` | BOOLEAN | Indikátor víkendového dňa |
+| `is_holiday` | BOOLEAN | Označenie sviatkov |
 
-- **Typ dimenzie**: **SCD Type 1**.
+#### 2. Dim_Movie
+| **Stĺpec** | **Typ** | **Popis** |
+|------------|---------|-----------|
+| `movie_id` | VARCHAR(10) | Unikátny identifikátor filmu |
+| `title` | VARCHAR(200) | Oficiálny názov filmu |
+| `year` | INT | Rok vydania |
+| `duration` | INT | Dĺžka filmu v minútach |
+| `valid_from` | DATE | Začiatok platnosti záznamu |
+| `is_current` | BOOLEAN | Indikátor aktuálnosti záznamu |
 
-### **6. Dim_Production_Company**  
-| **Stĺpec**              | **Typ**       | **Popis**                                                                 |
-|-------------------------|---------------|--------------------------------------------------------------------------|
-| `production_company_id` | INT           | Primárny kľúč, ktorý identifikuje produkčnú spoločnosť.                |
-| `production_company_name` | VARCHAR(200) | Názov produkčnej spoločnosti.                                           |
+#### 3. Dim_Director
+| **Stĺpec** | **Typ** | **Popis** |
+|------------|---------|-----------|
+| `director_id` | VARCHAR(10) | Unikátny identifikátor režiséra |
+| `director_name` | VARCHAR(100) | Meno režiséra |
+| `career_start_year` | INT | Rok začiatku kariéry |
+| `total_movies` | INT | Celkový počet režírovaných filmov |
+| `avg_career_rating` | DECIMAL(3,2) | Priemerné hodnotenie všetkých filmov |
 
-- **Typ dimenzie**: **SCD Type 1**.
+#### 4. Dim_Actor
+| **Stĺpec** | **Typ** | **Popis** |
+|------------|---------|-----------|
+| `actor_id` | VARCHAR(10) | Unikátny identifikátor herca |
+| `actor_name` | VARCHAR(100) | Meno herca |
+| `date_of_birth` | DATE | Dátum narodenia |
+| `height` | INT | Výška herca v cm |
 
----
+### Mapovacie tabuľky
 
-## Mapovacie tabuľky
+#### Movie_Genre_Mapping
+| **Stĺpec** | **Typ** | **Pravidlá** |
+|------------|---------|--------------|
+| `movie_id` | VARCHAR(10) | ON DELETE CASCADE |
+| `genre_id` | INT | ON DELETE RESTRICT |
 
-### **1. Movie_Genre_Mapping**  
-| **Stĺpec**              | **Typ**       | **Popis**                                                                 |
-|-------------------------|---------------|--------------------------------------------------------------------------|
-| `movie_id`             | VARCHAR(10)   | Identifikátor filmu (cudzí kľúč odkazujúci na `Dim_Movie`).            |
-| `genre_id`             | INT           | Identifikátor žánru (cudzí kľúč odkazujúci na `Dim_Genre`).            |
+#### Movie_Actor_Mapping
+| **Stĺpec** | **Typ** | **Pravidlá** |
+|------------|---------|--------------|
+| `movie_id` | VARCHAR(10) | ON DELETE CASCADE |
+| `actor_id` | VARCHAR(10) | ON DELETE RESTRICT |
+| `role_category` | VARCHAR(50) | NOT NULL |
+| `is_lead_role` | BOOLEAN | NOT NULL |
 
-### **2. Movie_Director_Mapping**  
-| **Stĺpec**              | **Typ**       | **Popis**                                                                 |
-|-------------------------|---------------|--------------------------------------------------------------------------|
-| `movie_id`             | VARCHAR(10)   | Identifikátor filmu (cudzí kľúč odkazujúci na `Dim_Movie`).            |
-| `director_id`          | VARCHAR(10)   | Identifikátor režiséra (cudzí kľúč odkazujúci na `Dim_Director`).      |
+## Optimalizácia výkonu
 
-### **3. Movie_Actor_Mapping**  
-| **Stĺpec**              | **Typ**       | **Popis**                                                                 |
-|-------------------------|---------------|--------------------------------------------------------------------------|
-| `movie_id`             | VARCHAR(10)   | Identifikátor filmu (cudzí kľúč odkazujúci na `Dim_Movie`).            |
-| `actor_id`             | VARCHAR(10)   | Identifikátor herca (cudzí kľúč odkazujúci na `Dim_Actor`).            |
+### Vytvorené indexy a ich význam
 
----
+#### Optimalizácia vyhľadávania
+- **idx_movie_title**: Zrýchlenie vyhľadávania filmov podľa názvu
+- **idx_director_name**: Optimalizácia queries na mená režisérov
+- **idx_actor_name**: Rýchle vyhľadávanie hercov podľa mena
+- **idx_date_year**: Podpora časových analýz podľa rokov
+- **idx_worldwide_gross**: Optimalizácia radenia a filtrovania podľa tržieb
+- **idx_avg_rating**: Zrýchlenie queries na hodnotenia filmov
 
-## Zhrnutie
-Tento dimenzionálny model typu hviezda je navrhnutý tak, aby podporoval komplexnú analýzu filmových dát. Faktová tabuľka obsahuje všetky kľúčové metriky, zatiaľ čo dimenzionálne tabuľky poskytujú kontext pre tieto metriky. Mapovacie tabuľky riešia vzťahy **M:N (mnoho k mnohým)** a zaisťujú flexibilitu pri analýze. Celý model je pripravený na implementáciu v Snowflake a bude slúžiť ako základ pre ďalšie vizualizácie a zisťovanie trendov v filmovom priemysle.
+#### Dôvody indexovania
+- Zlepšenie výkonu častých dotazov
+- Optimalizácia JOIN operácií
+- Zrýchlenie agregačných funkcií
+- Podpora efektívneho radenia a filtrovania
+
+### SQL pre vytvorenie indexov
+```sql
+CREATE INDEX idx_movie_title ON Dim_Movie(title);
+CREATE INDEX idx_director_name ON Dim_Director(director_name);
+CREATE INDEX idx_actor_name ON Dim_Actor(actor_name);
+CREATE INDEX idx_date_year ON Dim_Date(year);
+CREATE INDEX idx_worldwide_gross ON Fact_Movie(worldwide_gross_income);
+CREATE INDEX idx_avg_rating ON Fact_Movie(avg_rating);
+```
+
 

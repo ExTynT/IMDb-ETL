@@ -237,36 +237,6 @@ Centrálna tabuľka obsahujúca merateľné metriky o filmoch:
 | `role_category` | VARCHAR(50) | NOT NULL |
 | `is_lead_role` | BOOLEAN | NOT NULL |
 
-## Optimalizácia výkonu
-
-### Vytvorené indexy a ich význam
-
-#### Optimalizácia vyhľadávania
-- **idx_movie_title**: Zrýchlenie vyhľadávania filmov podľa názvu
-- **idx_director_name**: Optimalizácia queries na mená režisérov
-- **idx_actor_name**: Rýchle vyhľadávanie hercov podľa mena
-- **idx_date_year**: Podpora časových analýz podľa rokov
-- **idx_worldwide_gross**: Optimalizácia radenia a filtrovania podľa tržieb
-- **idx_avg_rating**: Zrýchlenie queries na hodnotenia filmov
-
-#### Dôvody indexovania
-- Zlepšenie výkonu častých dotazov
-- Optimalizácia JOIN operácií
-- Zrýchlenie agregačných funkcií
-- Podpora efektívneho radenia a filtrovania
-
-### SQL pre vytvorenie indexov
-```sql
-CREATE INDEX idx_movie_title ON Dim_Movie(title);
-CREATE INDEX idx_director_name ON Dim_Director(director_name);
-CREATE INDEX idx_actor_name ON Dim_Actor(actor_name);
-CREATE INDEX idx_date_year ON Dim_Date(year);
-CREATE INDEX idx_worldwide_gross ON Fact_Movie(worldwide_gross_income);
-CREATE INDEX idx_avg_rating ON Fact_Movie(avg_rating);
-```
-
-
-
 
 # ETL Proces v Snowflake
 

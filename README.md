@@ -1,105 +1,111 @@
 # ETL pre dataset IMDb movies
 
 ## Úvod
-Účelom tohto repozitáru je analýza dát z IMDb movies datasetu a následná implementácia ETL procesu pomocou Snowflake. Projekt sa zameriava na hlbšie preskúmanie rôznych aspektov filmového priemyslu, ako sú hodnotenia, popularita, finančný úspech a geografické rozloženie filmov.
+
+Účelom tohto repozitára je analýza dát z IMDb movies datasetu a následná implementácia ETL procesu pomocou Snowflake. Projekt sa zameriava na hlbšie preskúmanie rôznych aspektov filmového priemyslu, ako sú **hodnotenia**, **popularita**, **finančný úspech** a **geografické rozloženie filmov**.
 
 ---
 
 ## Cieľ
-Cieľom projektu je implementovať ETL proces v Snowflake na analýzu dát z IMDb movies datasetu. Projekt sa sústreďuje na nasledujúce témy:
-- Vplyv kombinácií žánrov na finančný úspech filmov.
-- Konzistentnosť režisérov z pohľadu priemerných hodnotení.
-- Geografické rozloženie filmovej produkcie podľa krajín a jazykov.
-- Vývoj diváckych preferencií sledovaný hodnoteniami a hlasmi v priebehu rokov.
-- Vzťah medzi výškou hercov a úspechom ich filmov.
+
+Cieľom projektu je implementovať ETL proces v Snowflake na analýzu dát z IMDb movies datasetu. Projekt sa sústreďuje na nasledujúce témy, ktoré som skúmal pomocou SQL dotazov a vizualizácií:
+
+*   **Analýza Kombinácií Žánrov a Tržieb:** Zistiť, ktoré kombinácie filmových žánrov generujú najvyššie priemerné tržby.
+*  **Časový Vývoj Tržieb podľa Žánrov:**  Sledovať, ako sa finančná úspešnosť jednotlivých žánrov mení v priebehu času.
+*   **Sezónnosť Anglických Filmov:** Analyzovať mesačné trendy v produkcii anglických filmov a zistiť, či existujú preferované mesiace pre ich vydávanie.
+*   **Vývoj Hodnotení Žánrov:** Sledovať, ako sa mení divácke hodnotenie jednotlivých žánrov v priebehu času.
+*   **Vzťah medzi Výškou Hercov a Tržbami:** Skúmať koreláciu medzi výškou hercov a finančným úspechom ich filmov.
+*   **Zastúpenie Pohlaví vo Filmoch:** Analyzovať rodovú rovnováhu v obsadzovaní filmov, zameranú na počet mužských a ženských rolí.
 
 ---
 
-## Dátová štruktúra
-### Zdrojové dáta
-Používam dáta z datasetu [SQL---IMDb-Movie-Analysis](https://github.com/AntaraChat/SQL---IMDb-Movie-Analysis/tree/main).
+## Dátová Štruktúra
+
+### Zdrojové Dáta
+
+Používam dáta z datasetu: [SQL---IMDb-Movie-Analysis](https://github.com/AntaraChat/SQL---IMDb-Movie-Analysis/tree/main).
 
 ---
 
-### **Tabuľka Movie**
-Faktová tabuľka, ktorá uchováva základné informácie o filmoch.
+### **Tabuľka `movie`**
+*   Uchováva základné informácie o filmoch.
 
-| **Stĺpec**               | **Typ**       | **Popis**                                                                 |
-|--------------------------|---------------|---------------------------------------------------------------------------|
-| `id`                    | VARCHAR(10)   | Primárny kľúč, ktorý identifikuje film.                                  |
-| `title`                 | VARCHAR(200)  | Názov filmu.                                                             |
-| `year`                  | INT           | Rok vydania filmu.                                                       |
-| `date_published`        | DATE          | Dátum publikácie filmu.                                                 |
-| `duration`              | INT           | Dĺžka filmu v minútach.                                                 |
-| `country`               | VARCHAR(250)  | Krajina, kde bol film vyrobený.                                          |
-| `worlwide_gross_income` | VARCHAR(30)   | Celosvetové tržby filmu.                                                 |
-| `languages`             | VARCHAR(200)  | Jazyky, v ktorých je film dostupný.                                      |
-| `production_company`    | VARCHAR(200)  | Produkčná spoločnosť filmu.                                              |
-
----
-
-### **Tabuľka Genre**
-Mapuje žánre filmov.
-
-| **Stĺpec**      | **Typ**       | **Popis**                                                                 |
-|-----------------|---------------|---------------------------------------------------------------------------|
-| `movie_id`      | VARCHAR(10)   | Identifikátor filmu (cudzí kľúč odkazujúci na `movie`).                   |
-| `genre`         | VARCHAR(20)   | Názov žánru.                                                             |
-| **PK**          | (`movie_id`, `genre`) | Kombinácia `movie_id` a `genre` je primárny kľúč.                       |
+| Stĺpec               | Typ         | Popis                                                        |
+| --------------------- | ----------- | ------------------------------------------------------------ |
+| `id`                 | `VARCHAR(10)`  | Primárny kľúč, identifikátor filmu.                            |
+| `title`              | `VARCHAR(200)` | Názov filmu.                                                 |
+| `year`               | `INT`        | Rok vydania filmu.                                            |
+| `date_published`     | `DATE`       | Dátum publikácie filmu.                                       |
+| `duration`           | `INT`        | Dĺžka filmu v minútach.                                      |
+| `country`            | `VARCHAR(250)` | Krajina výroby filmu.                                       |
+| `worlwide_gross_income` | `VARCHAR(30)` | Celosvetové tržby filmu.                                     |
+| `languages`          | `VARCHAR(200)` | Jazyky, v ktorých je film dostupný.                             |
+| `production_company` | `VARCHAR(200)` | Produkčná spoločnosť filmu.                                  |
 
 ---
 
-### **Tabuľka Director Mapping**
-Mapuje režisérov k filmom.
+### **Tabuľka `genre`**
+*   Mapuje žánre filmov.
 
-| **Stĺpec**      | **Typ**       | **Popis**                                                                 |
-|-----------------|---------------|---------------------------------------------------------------------------|
-| `movie_id`      | VARCHAR(10)   | Identifikátor filmu (cudzí kľúč odkazujúci na `movie`).                   |
-| `name_id`       | VARCHAR(10)   | Identifikátor mena režiséra (cudzí kľúč odkazujúci na `names`).           |
-| **PK**          | (`movie_id`, `name_id`) | Kombinácia `movie_id` a `name_id` je primárny kľúč.                      |
-
----
-
-### **Tabuľka Role Mapping**
-Mapuje hercov a ich kategórie k filmom.
-
-| **Stĺpec**      | **Typ**       | **Popis**                                                                 |
-|-----------------|---------------|---------------------------------------------------------------------------|
-| `movie_id`      | VARCHAR(10)   | Identifikátor filmu (cudzí kľúč odkazujúci na `movie`).                   |
-| `name_id`       | VARCHAR(10)   | Identifikátor mena herca (cudzí kľúč odkazujúci na `names`).              |
-| `category`      | VARCHAR(10)   | Kategória roly (napr. herec, režisér).                                   |
-| **PK**          | (`movie_id`, `name_id`) | Kombinácia `movie_id` a `name_id` je primárny kľúč.                      |
+| Stĺpec   | Typ         | Popis                                                        |
+| -------- | ----------- | ------------------------------------------------------------ |
+| `movie_id` | `VARCHAR(10)` | Identifikátor filmu (cudzí kľúč odkazujúci na `movie`).     |
+| `genre`    | `VARCHAR(20)`  | Názov žánru.                                                |
+| **PK**     | (`movie_id`, `genre`) | Kombinácia `movie_id` a `genre` je primárny kľúč.              |
 
 ---
 
-### **Tabuľka Names**
-Uchováva informácie o osobách (herci, režiséri atď.).
+### **Tabuľka `director_mapping`**
+*   Mapuje režisérov k filmom.
 
-| **Stĺpec**              | **Typ**       | **Popis**                                                                 |
-|-------------------------|---------------|---------------------------------------------------------------------------|
-| `id`                    | VARCHAR(10)   | Primárny kľúč, ktorý identifikuje osobu.                                 |
-| `name`                  | VARCHAR(100)  | Meno osoby.                                                              |
-| `height`                | INT           | Výška osoby.                                                             |
-| `date_of_birth`         | DATE          | Dátum narodenia osoby.                                                  |
-| `known_for_movies`      | VARCHAR(100)  | Filmy, pre ktoré je osoba známa.                                         |
+| Stĺpec   | Typ         | Popis                                                        |
+| -------- | ----------- | ------------------------------------------------------------ |
+| `movie_id` | `VARCHAR(10)` | Identifikátor filmu (cudzí kľúč odkazujúci na `movie`).     |
+| `name_id`  | `VARCHAR(10)` | Identifikátor mena režiséra (cudzí kľúč odkazujúci na `names`). |
+| **PK**     | (`movie_id`, `name_id`) | Kombinácia `movie_id` a `name_id` je primárny kľúč.             |
 
 ---
 
-### **Tabuľka Ratings**
-Uchováva hodnotenia filmov.
+### **Tabuľka `role_mapping`**
+*   Mapuje hercov a ich kategórie k filmom.
 
-| **Stĺpec**          | **Typ**       | **Popis**                                                                 |
-|---------------------|---------------|---------------------------------------------------------------------------|
-| `movie_id`          | VARCHAR(10)   | Identifikátor filmu (cudzí kľúč odkazujúci na `movie`).                   |
-| `avg_rating`        | DECIMAL(3,1)  | Priemerné hodnotenie filmu.                                               |
-| `total_votes`       | INT           | Celkový počet hlasov.                                                    |
-| `median_rating`     | INT           | Medián hodnotenia.                                                        |
-| **PK**              | `movie_id`    | `movie_id` je primárny kľúč.                                             |
+| Stĺpec   | Typ         | Popis                                                            |
+| -------- | ----------- | ----------------------------------------------------------------- |
+| `movie_id` | `VARCHAR(10)` | Identifikátor filmu (cudzí kľúč odkazujúci na `movie`).          |
+| `name_id`  | `VARCHAR(10)` | Identifikátor mena herca (cudzí kľúč odkazujúci na `names`).        |
+| `category` | `VARCHAR(10)` | Kategória roly (napr. herec, režisér).                         |
+| **PK**     | (`movie_id`, `name_id`) | Kombinácia `movie_id` a `name_id` je primárny kľúč.                 |
 
 ---
 
+### **Tabuľka `names`**
+*   Uchováva informácie o osobách (herci, režiséri atď.).
+
+| Stĺpec            | Typ         | Popis                                                    |
+| ------------------ | ----------- | -------------------------------------------------------- |
+| `id`              | `VARCHAR(10)`  | Primárny kľúč, ktorý identifikuje osobu.                |
+| `name`            | `VARCHAR(100)` | Meno osoby.                                              |
+| `height`          | `INT`        | Výška osoby.                                             |
+| `date_of_birth`   | `DATE`       | Dátum narodenia osoby.                                    |
+| `known_for_movies` | `VARCHAR(100)` | Filmy, pre ktoré je osoba známa.                           |
+
+---
+
+### **Tabuľka `ratings`**
+*   Uchováva hodnotenia filmov.
+
+| Stĺpec        | Typ         | Popis                                                        |
+| ------------- | ----------- | ------------------------------------------------------------ |
+| `movie_id`    | `VARCHAR(10)` | Identifikátor filmu (cudzí kľúč odkazujúci na `movie`).     |
+| `avg_rating`  | `DECIMAL(3,1)`| Priemerné hodnotenie filmu.                                   |
+| `total_votes` | `INT`        | Celkový počet hlasov.                                        |
+| `median_rating` | `INT`        | Medián hodnotenia.                                           |
+| **PK**       | `movie_id` | `movie_id` je primárny kľúč.                                 |
+
+---
 
 # ERD Diagram
+
 Surové dáta sú organizované v rámci relačného modelu, ktorý je znázornený pomocou entitno-relačného diagramu (ERD).
 
 <p align="center">
@@ -110,10 +116,10 @@ Surové dáta sú organizované v rámci relačného modelu, ktorý je znázorne
 
 
 
+
 # Návrh dimenzionálneho modelu pre IMDb Movies Dataset
 
-## Úvod
-Pre projekt som navrhol **multi-dimenzionálny model typu hviezda**, ktorý slúži na analýzu filmovej databázy IMDb. Model sa skladá z centrálnej faktovej tabuľky a ôsmich dimenzionálnych tabuliek. Každá dimenzia je navrhnutá pre špecifický aspekt analýzy - od časových trendov až po geografické vzory v produkcii filmov.
+Pre projekt som navrhol **multi-dimenzionálny model typu hviezda**, ktorý slúži na analýzu filmovej databázy IMDb. Model sa skladá z centrálnej faktovej tabuľky a ôsmich dimenzionálnych tabuliek. Hviezdicová schéma, ktorú som použil, je **jednoduchý a efektívny spôsob organizovania dát pre analytické účely**, kde je faktová tabuľka obklopená dimenzionálnymi tabuľkami. Každá dimenzia je navrhnutá pre špecifický aspekt analýzy.
 
 <p align="center">
     <img src="https://github.com/user-attachments/assets/4d4bbab2-3c1d-4fc0-957f-7a0a3ce16e31" alt="IMDb_star_schema_IMG mwb">
@@ -121,121 +127,220 @@ Pre projekt som navrhol **multi-dimenzionálny model typu hviezda**, ktorý slú
     <em>Obrázok 2: Schéma dimenzionálneho modelu IMDb Movies Dataset</em>
 </p>
 
+
 ## Popis dimenzionálneho modelu
 
-### Faktová tabuľka (Fact_Movie)
-Centrálna tabuľka obsahujúca merateľné metriky o filmoch:
-- Finančné metriky (tržby)
-- Metriky hodnotenia (priemerné hodnotenie, počet hlasov)
-- Agregované metriky (počet žánrov)
+### Faktová tabuľka (`Fact_Movie`)
+*   Centrálna tabuľka obsahujúca merateľné metriky o filmoch:
+    *   Finančné metriky (tržby)
+    *   Metriky hodnotenia (priemerné hodnotenie, počet hlasov)
+    *   Agregované metriky (počet žánrov)
 
 ### Dimenzionálne tabuľky a ich charakteristika
 
-#### 1. Dim_Date (SCD Type 1)
-- **Obsah**: Kalendárne atribúty pre časovú analýzu
-- **Vzťah k faktom**: Umožňuje sledovanie trendov v čase a sezónne analýzy
-- **Dôvod typu**: Časové údaje sa nemenia, nie je potrebná história zmien
+#### 1. `Dim_Date` (SCD Typ 1)
+*   **Obsah:** Kalendárne atribúty pre časovú analýzu.
+*   **Vzťah k faktom:** Umožňuje analýzu metrík v kontexte času.
+*   **Dôvod typu:** Časové údaje sa nemenia, nie je potrebná história zmien.
 
-#### 2. Dim_Movie (SCD Type 2)
-- **Obsah**: Základné informácie o filmoch
-- **Vzťah k faktom**: Hlavná dimenzia poskytujúca kontext k metrikám
-- **Dôvod typu**: Potrebné sledovať zmeny v údajoch o filme (napr. názov, dĺžka)
+#### 2. `Dim_Movie` (SCD Typ 2)
+*   **Obsah:** Základné informácie o filmoch.
+*   **Vzťah k faktom:** Hlavná dimenzia poskytujúca kontext k metrikám.
+*   **Dôvod typu:** Potrebné sledovať zmeny v údajoch o filme (napr. názov, dĺžka).
 
-#### 3. Dim_Director (SCD Type 2)
-- **Obsah**: Informácie o režiséroch a ich kariére
-- **Vzťah k faktom**: Umožňuje analýzu vplyvu režiséra na úspech filmu
-- **Dôvod typu**: Sledovanie zmien v kariérnych metrikách režisérov
+#### 3. `Dim_Director` (SCD Typ 2)
+*   **Obsah:** Informácie o režiséroch a ich kariére.
+*   **Vzťah k faktom:** Umožňuje analýzu metrík z pohľadu režisérov.
+*   **Dôvod typu:** Sledovanie zmien v kariérnych metrikách režisérov.
 
-#### 4. Dim_Actor (SCD Type 2)
-- **Obsah**: Biografické údaje hercov
-- **Vzťah k faktom**: Analýza vplyvu obsadenia na úspešnosť
-- **Dôvod typu**: Potreba zachytiť zmeny v kariére hercov
+#### 4. `Dim_Actor` (SCD Typ 2)
+*   **Obsah:** Biografické údaje hercov.
+*   **Vzťah k faktom:** Umožňuje analýzu metrík z pohľadu hercov.
+*   **Dôvod typu:** Potreba zachytiť zmeny v kariére hercov.
 
-#### 5. Dim_Genre (SCD Type 1)
-- **Obsah**: Kategorizácia filmových žánrov
-- **Vzťah k faktom**: Umožňuje žánrovú analýzu úspešnosti
-- **Dôvod typu**: Žánre sú stabilné kategórie
+#### 5. `Dim_Genre` (SCD Typ 1)
+*   **Obsah:** Kategorizácia filmových žánrov.
+*   **Vzťah k faktom:** Umožňuje analýzu metrík v kontexte filmových žánrov.
+*   **Dôvod typu:** Žánre sú stabilné kategórie.
 
-#### 6. Dim_Production_Company (SCD Type 1)
-- **Obsah**: Údaje o produkčných spoločnostiach
-- **Vzťah k faktom**: Analýza úspešnosti štúdií
-- **Dôvod typu**: Základné údaje o spoločnostiach sa často nemenia
+#### 6. `Dim_Production_Company` (SCD Typ 1)
+*   **Obsah:** Údaje o produkčných spoločnostiach.
+*   **Vzťah k faktom:** Umožňuje analýzu metrík z pohľadu produkčných spoločností.
+*   **Dôvod typu:** Základné údaje o spoločnostiach sa často nemenia.
+
+#### 7. `Dim_Language` (SCD Typ 1)
+*   **Obsah:** Informácie o jazykoch.
+*   **Vzťah k faktom:** Umožňuje filtrovanie a analýzu metrík podľa jazyka.
+*   **Dôvod typu:** Zoznam jazykov sa nemení, nepotrebujem históriu.
+
+#### 8. `Dim_Country` (SCD Typ 1)
+*   **Obsah:** Zoznam krajín, v ktorých sa filmy produkovali.
+*   **Vzťah k faktom:** Umožňuje analýzu metrík v kontexte jednotlivých krajín.
+*   **Dôvod typu:** Zoznam krajín sa nemení, nepotrebujem históriu.
+
+---
 
 ## Detailná štruktúra tabuliek
 
-### Faktová tabuľka: **Fact_Movie**
-
-#### Hlavné metriky:
-| **Metrika** | **Typ** | **Popis** |
-|-------------|---------|-----------|
-| `worldwide_gross_income` | DECIMAL(15,2) | Celkové svetové tržby filmu - kľúčový indikátor úspechu |
-| `avg_rating` | DECIMAL(3,1) | Priemerné hodnotenie filmu (0-10) - ukazovateľ kvality |
-| `total_votes` | INT | Počet všetkých hodnotení - miera popularity |
-| `median_rating` | INT | Medián hodnotení (0-10) - stabilnejší ukazovateľ kvality |
-| `genre_count` | INT | Počet priradených žánrov - žánrová diverzita |
+### Faktová tabuľka: `Fact_Movie`
+*   Centrálna tabuľka obsahujúca merateľné metriky o filmoch:
+    *   Finančné metriky (tržby)
+    *   Metriky hodnotenia (priemerné hodnotenie, počet hlasov)
+    *   Agregované metriky (počet žánrov)
+*   **Použitie v analýzach:**
+    *   `worldwide_gross_income`: Kľúčová metrika pre analýzu **finančnej úspešnosti filmov** a žánrov.
+    *   `avg_rating`, `total_votes`, `median_rating`: Používam pre **analýzu vývoja diváckych preferencií a vzťahu výšky hercov a úspechu.**
+    *   `genre_count`: Využívam pre zistenie, ako sa žánrová diverzita filmov spája s tržbami.
 
 #### Dimenzionálne kľúče:
-| **Kľúč** | **Typ** | **Popis** |
-|-----------|---------|-----------|
-| `movie_id` | VARCHAR(10) | Hlavný identifikátor filmu |
-| `date_key` | INT | Referencia na časovú dimenziu |
-| `primary_genre_id` | INT | Odkaz na primárny žáner filmu |
+| Kľúč             | Typ         | Popis                                        |
+| ----------------- | ----------- | -------------------------------------------- |
+| `movie_id`       | `VARCHAR(10)`  | Hlavný identifikátor filmu                   |
+| `date_key`        | `INT`       | Referencia na časovú dimenziu               |
+| `primary_genre_id` | `INT`       | Odkaz na primárny žáner filmu |
 
 ### Dimenzionálne tabuľky
 
-#### 1. Dim_Date
-| **Stĺpec** | **Typ** | **Popis** |
-|------------|---------|-----------|
-| `date_key` | INT | Surrogate kľúč pre časovú dimenziu |
-| `full_date` | DATE | Kompletný dátum |
-| `year` | INT | Rok (1900-2100) pre historické analýzy |
-| `quarter` | INT | Kvartál (1-4) pre sezónne trendy |
-| `month` | INT | Mesiac (1-12) pre mesačné analýzy |
-| `is_weekend` | BOOLEAN | Indikátor víkendového dňa |
-| `is_holiday` | BOOLEAN | Označenie sviatkov |
+#### 1. `Dim_Date` (SCD Typ 1)
+| Stĺpec       | Typ      | Popis                                                 |
+| ------------- | -------- | ---------------------------------------------------- |
+| `date_key`    | `INT`    | Surrogate kľúč pre časovú dimenziu                  |
+| `full_date`   | `DATE`   | Kompletný dátum                                       |
+| `year`        | `INT`    | Rok (1900-2100) pre historické analýzy             |
+| `quarter`     | `INT`    | Kvartál (1-4) pre sezónne trendy                       |
+| `month`       | `INT`    | Mesiac (1-12) pre mesačné analýzy                     |
+| `month_name`  | `VARCHAR(20)` | Názov Mesiaca |
+| `week`        | `INT`    | Týždeň (1-52) |
+| `day_of_month` | `INT`        | Deň v mesiaci                                 |
+| `day_of_week` | `INT`       | Deň v týždni                                   |
+| `day_name`    | `VARCHAR(20)`| Názov dňa v týždni |
+| `is_weekend`  | `BOOLEAN`| Indikátor víkendového dňa                          |
+| `decade`  | `INT`    | Dekáda                                      |
+| `is_holiday`  | `BOOLEAN`| Označenie sviatkov                                   |
+| `season` | `VARCHAR(20)` | Ročné obdobie                           |
+ *   **Použitie v analýzach:**
+       Používam pri mesačnej analýze `Sezónnosti Anglických Filmov` a pri sledovaní `Vývoja Hodnotení Žánrov`.
 
-#### 2. Dim_Movie
-| **Stĺpec** | **Typ** | **Popis** |
-|------------|---------|-----------|
-| `movie_id` | VARCHAR(10) | Unikátny identifikátor filmu |
-| `title` | VARCHAR(200) | Oficiálny názov filmu |
-| `year` | INT | Rok vydania |
-| `duration` | INT | Dĺžka filmu v minútach |
-| `valid_from` | DATE | Začiatok platnosti záznamu |
-| `is_current` | BOOLEAN | Indikátor aktuálnosti záznamu |
+#### 2. `Dim_Movie` (SCD Typ 2)
+| Stĺpec      | Typ          | Popis                                         |
+| ----------- | ------------ | --------------------------------------------- |
+| `movie_id` | `VARCHAR(10)` | Unikátny identifikátor filmu                  |
+| `title`     | `VARCHAR(200)` | Oficiálny názov filmu                           |
+| `year`      | `INT`        | Rok vydania                                  |
+| `duration`  | `INT`        | Dĺžka filmu v minútach                        |
+| `production_company_id`  | `INT`        | Identifikátor produkčnej spoločnosti (cudzí kľúč)                |
+| `country_id` | `INT` | Unikátny identifikátor krajiny (cudzí kľúč) |
+| `valid_from`| `DATE`       | Začiatok platnosti záznamu                    |
+| `valid_to`| `DATE`       | Koniec platnosti záznamu                    |
+| `is_current`| `BOOLEAN`    | Indikátor aktuálnosti záznamu                |
+*   **Použitie v analýzach:**
+    *  `movie_id` prepája faktovú tabuľku s informáciami o konkrétnom filme vo všetkých analýzach.
+    * `title`, `year`, `duration`, používam ako dodatočné dimenzie pri analýze `Vzťahu medzi Výškou Hercov a Tržbami`.
 
-#### 3. Dim_Director
-| **Stĺpec** | **Typ** | **Popis** |
-|------------|---------|-----------|
-| `director_id` | VARCHAR(10) | Unikátny identifikátor režiséra |
-| `director_name` | VARCHAR(100) | Meno režiséra |
-| `career_start_year` | INT | Rok začiatku kariéry |
-| `total_movies` | INT | Celkový počet režírovaných filmov |
-| `avg_career_rating` | DECIMAL(3,2) | Priemerné hodnotenie všetkých filmov |
+#### 3. `Dim_Director` (SCD Typ 2)
+| Stĺpec            | Typ          | Popis                                         |
+| ------------------ | ------------ | --------------------------------------------- |
+| `director_id`     | `VARCHAR(10)` | Unikátny identifikátor režiséra             |
+| `director_name`    | `VARCHAR(100)` | Meno režiséra                                 |
+| `date_of_birth`    | `DATE`       | Dátum narodenia režiséra              |
+| `height`          | `INT`        | Výška režiséra v cm                                  |
+| `career_start_year`| `INT`        | Rok začiatku kariéry                       |
+| `total_movies`     | `INT`        | Celkový počet režírovaných filmov            |
+| `avg_career_rating`| `DECIMAL(3,2)`| Priemerné hodnotenie všetkých filmov        |
+| `valid_from`| `DATE`       | Začiatok platnosti záznamu                    |
+| `valid_to`| `DATE`       | Koniec platnosti záznamu                    |
+| `is_current`| `BOOLEAN`    | Indikátor aktuálnosti záznamu                |
+*   **Použitie v analýzach:**
+    *  Používam pre  analýzu `Konzistentnosti Režisérov`.
 
-#### 4. Dim_Actor
-| **Stĺpec** | **Typ** | **Popis** |
-|------------|---------|-----------|
-| `actor_id` | VARCHAR(10) | Unikátny identifikátor herca |
-| `actor_name` | VARCHAR(100) | Meno herca |
-| `date_of_birth` | DATE | Dátum narodenia |
-| `height` | INT | Výška herca v cm |
+#### 4. `Dim_Actor` (SCD Typ 2)
+| Stĺpec       | Typ          | Popis                                         |
+| ------------- | ------------ | --------------------------------------------- |
+| `actor_id`   | `VARCHAR(10)`  | Unikátny identifikátor herca                 |
+| `actor_name`  | `VARCHAR(100)` | Meno herca                                    |
+| `date_of_birth`| `DATE`       | Dátum narodenia                                |
+| `height`       | `INT`        | Výška herca v cm                               |
+| `valid_from`| `DATE`       | Začiatok platnosti záznamu                    |
+| `valid_to`| `DATE`       | Koniec platnosti záznamu                    |
+| `is_current`| `BOOLEAN`    | Indikátor aktuálnosti záznamu                |
+ * **Použitie v analýzach:**
+    * Používam pre analýzu `Vzťahu medzi Výškou Hercov a Tržbami` a  `Zastúpenia Pohlaví vo Filmoch`.
+
+#### 5. `Dim_Genre` (SCD Typ 1)
+| Stĺpec            | Typ          | Popis                                         |
+| ------------------ | ------------ | --------------------------------------------- |
+| `genre_id`         | `INT`     | Unikátny identifikátor žánru |
+| `genre_name` | `VARCHAR(50)` | Názov žánru                                       |
+* **Použitie v analýzach:**
+    * Používam pre analýzu `Analýzy Kombinácií Žánrov a Tržieb`, `Časového Vývoja Tržieb podľa Žánrov` a pri sledovaní `Vývoja Hodnotení Žánrov`.
+
+#### 6. `Dim_Production_Company` (SCD Typ 1)
+| Stĺpec            | Typ          | Popis                                         |
+| ------------------ | ------------ | --------------------------------------------- |
+| `production_company_id`     | `INT`     | Unikátny identifikátor produkčnej spoločnosti |
+| `production_company_name` | `VARCHAR(200)` | Názov produkčnej spoločnosti |
+* **Použitie v analýzach:**
+   * Nemám explicitné použitie v definovaných analýzach, slúži na možné budúce rozšírenie analýz o produkčné spoločnosti.
+
+#### 7. `Dim_Language` (SCD Typ 1)
+| Stĺpec            | Typ          | Popis                                         |
+| ------------------ | ------------ | --------------------------------------------- |
+| `language_id`         | `INT`     | Unikátny identifikátor jazyka |
+| `language_name` | `VARCHAR(50)` | Názov jazyka                                       |
+*  **Použitie v analýzach:**
+    *  Používam pre analýzu `Sezónnosti Anglických Filmov`.
+
+#### 8. `Dim_Country` (SCD Typ 1)
+| Stĺpec            | Typ          | Popis                                         |
+| ------------------ | ------------ | --------------------------------------------- |
+| `country_id`         | `INT`     | Unikátny identifikátor krajiny |
+| `country_name` | `VARCHAR(100)` | Názov krajiny                                       |
+* **Použitie v analýzach:**
+     * Nemám explicitné použitie v definovaných analýzach, slúži pre budúce rozšírenie o analýzu geografického rozloženia filmovej produkcie.
 
 ### Mapovacie tabuľky
 
-#### Movie_Genre_Mapping
-| **Stĺpec** | **Typ** | **Pravidlá** |
-|------------|---------|--------------|
-| `movie_id` | VARCHAR(10) | ON DELETE CASCADE |
-| `genre_id` | INT | ON DELETE RESTRICT |
+#### `Movie_Genre_Mapping`
+| Stĺpec    | Typ          | Pravidlá       |
+| --------- | ------------ | -------------- |
+| `movie_id`| `VARCHAR(10)`| `ON DELETE CASCADE` |
+| `genre_id` | `INT`        |`ON DELETE RESTRICT`|
+* **Použitie v analýzach:**
+    *  Spája film s jeho žánrami, umožňuje analyzovať špecifické kombinácie žánrov a ich vplyv.
 
-#### Movie_Actor_Mapping
-| **Stĺpec** | **Typ** | **Pravidlá** |
-|------------|---------|--------------|
-| `movie_id` | VARCHAR(10) | ON DELETE CASCADE |
-| `actor_id` | VARCHAR(10) | ON DELETE RESTRICT |
-| `role_category` | VARCHAR(50) | NOT NULL |
-| `is_lead_role` | BOOLEAN | NOT NULL |
+#### `Movie_Director_Mapping`
+| Stĺpec    | Typ          | Pravidlá       |
+| --------- | ------------ | -------------- |
+| `movie_id`| `VARCHAR(10)`| `ON DELETE CASCADE` |
+| `director_id` | `VARCHAR(10)`        |`ON DELETE RESTRICT`|
+* **Použitie v analýzach:**
+   * Spája film s jeho režisérom, čo umožňuje analyzovať režisérov a ich konzistentnosť.
+
+#### `Movie_Actor_Mapping`
+| Stĺpec      | Typ          | Pravidlá         |
+| ----------- | ------------ | ----------------- |
+| `movie_id` | `VARCHAR(10)` | `ON DELETE CASCADE`|
+| `actor_id`  | `VARCHAR(10)` | `ON DELETE RESTRICT`|
+| `role_category`| `VARCHAR(50)`| `NOT NULL`        |
+* **Použitie v analýzach:**
+   * Spája film s hercami, čo umožňuje analyzovať zastúpenie pohlaví a výšku hercov.
+
+#### `Movie_Language_Mapping`
+| Stĺpec    | Typ          | Pravidlá       |
+| --------- | ------------ | -------------- |
+| `movie_id`| `VARCHAR(10)`| `ON DELETE CASCADE` |
+| `language_id` | `INT`        |`ON DELETE RESTRICT`|
+* **Použitie v analýzach:**
+    * Spája film s jeho jazykom, čo umožňuje analyzovať mesačnú produkciu filmov v angličtine.
+
+---
+
+
+
+
+
+
+
 
 
 # ETL Proces v Snowflake
@@ -371,7 +476,6 @@ SELECT date_key, full_date, year, quarter, month, month_name, week, day_of_month
 FROM temp_date;
 ```
 *   **Účel:** Tabuľka pre časovú analýzu, uchováva kalendárne atribúty.
-*   **SCD Typ:** 1, dáta sa nemenia, nepotrebujem históriu.
 
 ### B) Vytvorenie a Naplnenie Tabuľky `Dim_Country` (SCD Typ 1)
 ```sql
@@ -397,7 +501,6 @@ SELECT country
 FROM temp_country;
 ```
 *   **Účel:** Uchováva zoznam krajín, kde sa filmy produkovali.
-*   **SCD Typ:** 1, dáta sa nemenia, nepotrebujem históriu.
 
 ### C) Vytvorenie a Naplnenie Tabuľky `Dim_Production_Company` (SCD Typ 1)
 ```sql
@@ -419,7 +522,6 @@ SELECT production_company
 FROM temp_production_company;
 ```
 *   **Účel:** Uchováva zoznam produkčných spoločností.
-*   **SCD Typ:** 1, dáta sa nemenia, nepotrebujem históriu.
 
 ### D) Vytvorenie a Naplnenie Tabuľky `Dim_Movie` (SCD Typ 2)
 ```sql
@@ -458,7 +560,6 @@ LEFT JOIN Dim_Production_Company pc ON m.production_company = pc.production_comp
 LEFT JOIN Dim_Country c ON m.country = c.country_name;
 ```
 *   **Účel:** Uchováva základné informácie o filmoch.
-*   **SCD Typ:** 2, sledujem historické zmeny dát (názov, dĺžka, atď.).
 
 ### E) Vytvorenie a Naplnenie Tabuľky `Dim_Genre` (SCD Typ 1)
 ```sql
@@ -480,7 +581,6 @@ SELECT genre
 FROM temp_genre_names;
 ```
 *  **Účel:** Uchováva zoznam filmových žánrov.
-*  **SCD Typ:** 1, žánre sú stabilné, nepotrebujem históriu.
 
 ### F) Vytvorenie a Naplnenie Tabuľky `Dim_Director` (SCD Typ 2)
 ```sql
@@ -535,7 +635,6 @@ SELECT
 FROM temp_director_with_dates;
 ```
 *   **Účel:** Uchováva informácie o režiséroch a ich kariére.
-*  **SCD Typ:** 2, sledujem historické zmeny v dátach o režiséroch.
 
 ### G) Vytvorenie a Naplnenie Tabuľky `Dim_Actor` (SCD Typ 2)
 ```sql
@@ -581,7 +680,6 @@ SELECT DISTINCT
 FROM temp_actor_with_start_date;
 ```
 *   **Účel:** Uchováva informácie o hercoch a ich kariére.
-*   **SCD Typ:** 2, sledujem historické zmeny v dátach o hercoch.
 
 ### H) Vytvorenie a Naplnenie Tabuľky `Dim_Language` (SCD Typ 1)
 ```sql
@@ -611,8 +709,7 @@ SELECT language
 FROM temp_language;
 ```
 *  **Účel:** Uchováva zoznam jazykov, v ktorých boli filmy vytvorené.
-*  **SCD Typ:** 1, zoznam jazykov sa nemení, nepotrebujem históriu.
-
+  
 ### Vytvorenie mapovacích tabuliek
 Vytvorím mapovacie tabuľky, ktoré slúžia na prepájanie medzi dimenzionálnymi a faktovými tabuľkami.
 ```sql

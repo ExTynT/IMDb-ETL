@@ -2,7 +2,7 @@
 
 ## Úvod
 
-Účelom tohto repozitára je analýza dát z IMDb movies datasetu a následná implementácia ETL procesu pomocou Snowflake. Projekt sa zameriava na hlbšie preskúmanie rôznych aspektov filmového priemyslu, ako sú **hodnotenia**, **popularita**, **finančný úspech** a **geografické rozloženie filmov**.
+Účelom tohto repozitára je analýza dát z IMDb movies datasetu a následná implementácia ETL procesu pomocou Snowflake. Projekt sa zameriava na hlbšie preskúmanie rôznych aspektov filmového priemyslu.
 
 ---
 
